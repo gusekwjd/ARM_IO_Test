@@ -162,11 +162,11 @@ int main()
 		// LED off
 		rPIO_CODR_B=(LED1|LED2|LED3);
 		for(i = 0; i < 10; ++i) Delay(100000);
-		switch(k%3)
+		switch(k%4)
 		{
 			case 0:
 			{
-				rPIO_SODR_B=LED3;
+				rPIO_SODR_B=LED1;
 				break;
 			}
 			case 1:
@@ -176,10 +176,16 @@ int main()
 			}
 			case 2:
 			{
-				rPIO_SODR_B=LED1;
+				rPIO_SODR_B=LED3;
+				break;
+			}
+			case 3:
+			{
+				rPIO_SODR_B=LED2;
 				break;
 			}
 		
+	
 		}
 		
 		for(i = 0; i < 10; ++i) Delay(100000);		
