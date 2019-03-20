@@ -158,6 +158,7 @@ int main()
 	
 	while(1) 
 	{
+		
 		// LED off
 		rPIO_CODR_B=(LED1|LED2|LED3);
 		for(i = 0; i < 10; ++i) Delay(100000);
@@ -165,7 +166,7 @@ int main()
 		{
 			case 0:
 			{
-				rPIO_SODR_B=LED1;
+				rPIO_SODR_B=LED3;
 				break;
 			}
 			case 1:
@@ -175,7 +176,7 @@ int main()
 			}
 			case 2:
 			{
-				rPIO_SODR_B=LED3;
+				rPIO_SODR_B=LED1;
 				break;
 			}
 		
