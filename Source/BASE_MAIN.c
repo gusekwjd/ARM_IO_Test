@@ -153,55 +153,20 @@ unsigned char Result=0;
 int main()
 {
 	
-	
+  	int n=0;
+  	
   	Port_Setup();
-	
+  	DBG_Init();
+  	
+  	Uart_Printf("Hello World");
 	
 	while(1) 
 	{
+		Uart_Printf("n=%d\n\r",n);
+		n++;
 		
-		int number=0;
-	 	int i,a,t;
-	 	int j=0;
-	 	  
-		rPIO_CODR_B=(LED1|LED2|LED3);
-		for(i = 0; i < 10; ++i) Delay(100000);
- 	 
- 	 	for( number=1;number<=7;number++)
- 	 	{
-
-    		int num[3]={0,0,0};
-    		t=number;
-
-	  		for(j=0;j<=2;j++)
-	  		{
-				
-    			num[j]=t%2;
-
-    			t=t/2; 
-    		  	
-    		
- 		
-  			}	
-			
-	 		rPIO_CODR_B=!(num[0])<<28;
-	 		rPIO_CODR_B=!(num[1])<<29;
-	 		rPIO_CODR_B=!(num[2])<<30;
-	 		
-    		rPIO_SODR_B=num[0]<<28;
-	 		rPIO_SODR_B=num[1]<<29;
-	 		rPIO_SODR_B=num[2]<<30;
-	 		
-	 		
-	 		for(i = 0; i < 10; ++i) Delay(100000);
-	 			 
-		
-
- 	 }
- 
- 	
- 	
-	}	
+	}
+	
 	
 		
 }
