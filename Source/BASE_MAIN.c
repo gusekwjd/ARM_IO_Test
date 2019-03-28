@@ -149,11 +149,23 @@ unsigned char Result=0;
 //-----------------------------------------------------------------------------
 /// Main Procedure
 //-----------------------------------------------------------------------------
+  
+  
+int factorial(int n)
+{
+	if(n==0)
+	{
+		return 1;
+	}
+	return n*factorial(n-1);
+
+}  
+  
                    
 int main()
 {
   int n = 1;
- 
+  int j=0;
    Port_Setup();
 	 DBG_Init();
    
@@ -162,19 +174,8 @@ int main()
  while (1)
  { 
  
-  int result = 1;
-  int i;
-  int j;
-
-   result = 1;
-
-   for (i = 1; i <= n; i++)
-    {
-     result = result* i;
-
-    }
-
-   Uart_Printf("%d! = %d\n\r", n, result);
+ 
+   Uart_Printf("%d! = %d\n\r", n,factorial(n));
   
   for(j=0;j<10;j++)
   {
