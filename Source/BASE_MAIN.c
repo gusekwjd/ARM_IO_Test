@@ -152,21 +152,37 @@ unsigned char Result=0;
                    
 int main()
 {
-	
-  	int n=0;
-  	
-  	Port_Setup();
-  	DBG_Init();
-  	
-  	Uart_Printf("Hello World");
-	
-	while(1) 
-	{
-		Uart_Printf("n=%d\n\r",n);
-		n++;
-		
-	}
-	
-	
-		
-}
+ 
+ 
+   Port_Setup();
+ DBG_Init();
+   
+ 
+
+ while (1)
+ { 
+ 
+  int result = 1;
+  int i;
+  int n = 1;
+   result = 1;
+ if(n==20)
+ {
+ 	break;
+ }
+ else
+ {
+   for (i = 1; i <= n; i++)
+    {
+     result *= i;
+
+    }
+
+   Uart_Printf("%d! = %d\n\n", n, result);
+   Delay(100000);
+  
+   n++;
+   }
+  
+ }
+} 
