@@ -152,10 +152,10 @@ unsigned char Result=0;
                    
 int main()
 {
- 
+  int n = 1;
  
    Port_Setup();
- DBG_Init();
+	 DBG_Init();
    
  
 
@@ -164,25 +164,26 @@ int main()
  
   int result = 1;
   int i;
-  int n = 1;
+  int j;
+
    result = 1;
- if(n==20)
- {
- 	break;
- }
- else
- {
+
    for (i = 1; i <= n; i++)
     {
-     result *= i;
+     result = result* i;
 
     }
 
-   Uart_Printf("%d! = %d\n\n", n, result);
-   Delay(100000);
+   Uart_Printf("%d! = %d\n\r", n, result);
   
+  for(j=0;j<10;j++)
+  {
+  
+   Delay(100000);
+   
+  }
    n++;
-   }
+   
   
  }
 } 
