@@ -208,13 +208,11 @@ void HW_delay_ms(unsigned int ms)
 int main()
 {
   	// UART   	
-	int s=0;
-	int m=0;
-	int h=0;
-	int ms=0;
-	int i=0;
-	
-	Port_Setup();
+  	int m=0;
+  	int s=0;
+  	int ms=0;
+  	int h=0;
+
 	DBG_Init();
 	
 	// PIT setup
@@ -222,39 +220,39 @@ int main()
 
 	while(1) 
 	{
+		// print
 		
+	
+	
 		if(ms==100)
 		{
 			ms=0;
-			s++;
-			rPIO_SODR_B=LED3;
+			s++;	
 		}
+		
 			
 		if(s==60)
 		{
 			s=0;
 			m++;
-			rPIO_SODR_B=LED2;
+			
 		}
-
 		if(m==60)
 		{
 			m=0;
 			h++;
-			rPIO_SODR_B=LED1;
-		
 		}
-
 		if(h==24)
 		{
 			h=0;
 		}
 			
+		
 		Uart_Printf("\r%02d:%02d:%02d:%02d",h,m,s,ms);
+		HW_delay_ms(10);
 		ms++;
-		HW_delay_ms(5);
-		rPIO_CODR_B=(LED1|LED2|LED3);
-		HW_delay_ms(5);
+
 	
+
 	}	
 }
