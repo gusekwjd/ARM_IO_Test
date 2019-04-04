@@ -149,42 +149,110 @@ unsigned char Result=0;
 //-----------------------------------------------------------------------------
 /// Main Procedure
 //-----------------------------------------------------------------------------
-  
-  
-int factorial(int n)
+// PIT interrupt service routine
+volatile unsigned int ms_count = 0;
+void PIT_ISR()
 {
-	if(n==0)
-	{
-		return 1;
-	}
-	return n*factorial(n-1);
+	// Clear PITS
+	AT91F_PITGetPIVR(AT91C_BASE_PITC);
 
-}  
-  
+	// increase ms_count
+	ms_count++;
+}
+
+// Initialize PIT and interrupt
+void PIT_initiailize()
+{
+	// enable peripheral clock for PIT
+	AT91F_PITC_CfgPMC();
+
+	// set the period to be every 1 msec in 48MHz
+	AT91F_PITInit(AT91C_BASE_PITC, 1, 48);
+
+	// PIV (Periodic Interval Value) = 3000 clocks = 1 msec
+	// MCK/16 = 48,000,000 / 16 = 3,000,000 clocks/sec
+	AT91F_PITSetPIV(AT91C_BASE_PITC, 3000-1);
+
+	// disable PIT periodic interrupt for now
+	AT91F_PITDisableInt(AT91C_BASE_PITC);
+
+	// interrupt handler initializatioin
+	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC, AT91C_ID_SYS, 7, 1, PIT_ISR);
+
+	// enable the PIT interrupt
+	AT91F_AIC_EnableIt(AT91C_BASE_AIC, AT91C_ID_SYS);
+}
+
+// delay in ms by PIT interrupt
+void HW_delay_ms(unsigned int ms)
+{
+	// special case
+	if(ms == 0) return;
+
+	// start time
+	ms_count = 0;
+
+	// enable PIT interrupt
+	AT91F_PITEnableInt(AT91C_BASE_PITC);
+
+	// wait for ms
+	while(ms_count < ms);
+
+	// disable PIT interrupt
+	AT91F_PITDisableInt(AT91C_BASE_PITC);
+}
+
+
                    
+
 int main()
 {
-  int n = 1;
-  int j=0;
-   Port_Setup();
-	 DBG_Init();
-   
- 
+  	// UART   	
+  	int m=0;
+  	int s=0;
+  	int ms=0;
+  	int h=0;
 
- while (1)
- { 
- 
- 
-   Uart_Printf("%d! = %d\n\r", n,factorial(n));
-  
-  for(j=0;j<10;j++)
-  {
-  
-   Delay(100000);
-   
-  }
-   n++;
-   
-  
- }
-} 
+	DBG_Init();
+	
+	// PIT setup
+	PIT_initiailize();
+
+	while(1) 
+	{
+		// print
+		
+	
+	
+		if(ms==100)
+		{
+			ms=0;
+			s++;	
+		}
+		
+			
+		if(s==60)
+		{
+			s=0;
+			m++;
+			
+		}
+		if(m==60)
+		{
+			m=0;
+			h++;
+		}
+		if(h==24)
+		{
+			h=0;
+		}
+			
+		
+		Uart_Printf("\r%02d:%02d:%02d:%02d",h,m,s,ms);
+		HW_delay_ms(10);
+		ms++;
+
+	
+
+	}	
+}
