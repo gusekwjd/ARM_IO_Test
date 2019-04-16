@@ -19,6 +19,13 @@ unsigned int 	Key_Count=0,Pre_Key_Data=0;
 unsigned char Switch_Check(void);
 unsigned char Port_Flag=0;
 unsigned int	Count=0; 
+
+//Stop watch global var
+int s=0;
+int m=0;
+int h=0;
+int ms=0;
+
 //============================================================================
 //  Function  : PIT Interrupt
 //============================================================================
@@ -27,7 +34,7 @@ void Isr_PIT(void)
     volatile unsigned int pit_pivr;
 	if((rPIT_SR & 1) != 0)  //The Periodic Interval timer has reached PIV since the last read of PIT_PIVR
     {
-		pit_pivr = rPIT_PIVR;    //Reads Periodic Interval Timer Value Register - Clears PITS in PIT_SR
+		pit_pivr = rPIT_PIVR; //Reads Periodic Interval Timer Value Register - Clears PITS in PIT_SR
 //		Count++;
 //		if(Count==100)
 //		{
@@ -92,8 +99,11 @@ void Port_Setup(void)
 	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, SW1|SW2 ); // output mode
 	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, SW1|SW2 ); // pull-up
 
-//AT91F_PIO_SetOutput(AT91C_BASE_PIOA, (1<<13));
-//AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, (1<<13));
+	
+	//AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,1<<AT91C_ID_PIOA);
+
+	//AT91F_PIO_SetOutput(AT91C_BASE_PIOA, (1<<13));
+	//AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, (1<<13));
 	
 }
 /*
@@ -202,16 +212,41 @@ void HW_delay_ms(unsigned int ms)
 	AT91F_PITDisableInt(AT91C_BASE_PITC);
 }
 
+//PIO interrupt service routine
+void PIO_ISR()
+{
+	//Reset the stop watch
+	s=0;
+	m=0;
+	h=0;
+	ms=0;
+	
+}
+
+void interrupt_setup()
+{
+	//SW1을 input
+	AT91F_PIO_InputFilterEnable(AT91C_BASE_PIOA,SW1);
+	
+	//Set interrupt SW1
+	AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,SW1);
+	
+	//Set callback function
+	//PIOA 에 인터럽트가 걸리면 
+	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC,AT91C_ID_PIOA,7,1,PIO_ISR);
+	
+	//Enable AIC
+	//AT91F_AIC_EnableIt(AT91C_BASE_AIC,AT91C_ID_PIOA);
+}
+
+
 
                    
 
 int main()
 {
-  	// UART   	
-	int s=0;
-	int m=0;
-	int h=0;
-	int ms=0;
+  	
+
 	int i=0;
 	
 	Port_Setup();
@@ -219,6 +254,10 @@ int main()
 	
 	// PIT setup
 	PIT_initiailize();
+	
+	//interrupt setup
+	interrupt_setup();
+	
 
 	while(1) 
 	{
