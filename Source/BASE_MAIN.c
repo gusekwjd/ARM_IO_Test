@@ -160,14 +160,14 @@ unsigned char Result=0;
 /// Main Procedure
 //-----------------------------------------------------------------------------
 // PIT interrupt service routine
-volatile unsigned int ms_count = 0;
+volatile unsigned int ten_us_count = 0;
 void PIT_ISR()
 {
 	// Clear PITS
 	AT91F_PITGetPIVR(AT91C_BASE_PITC);
 
 	// increase ms_count
-	ms_count++;
+	ten_us_count++;
 }
 
 // Initialize PIT and interrupt
@@ -181,7 +181,8 @@ void PIT_initiailize()
 
 	// PIV (Periodic Interval Value) = 3000 clocks = 1 msec
 	// MCK/16 = 48,000,000 / 16 = 3,000,000 clocks/sec
-	AT91F_PITSetPIV(AT91C_BASE_PITC, 3000-1);
+	//30 clocks / 10 usec
+	AT91F_PITSetPIV(AT91C_BASE_PITC, 30-1);
 
 	// disable PIT periodic interrupt for now
 	AT91F_PITDisableInt(AT91C_BASE_PITC);
@@ -194,19 +195,21 @@ void PIT_initiailize()
 }
 
 // delay in ms by PIT interrupt
-void HW_delay_ms(unsigned int ms)
+
+
+void HW_delay_ten_us(unsigned int ten_us)
 {
 	// special case
-	if(ms == 0) return;
+	if(ten_us == 0) return;
 
 	// start time
-	ms_count = 0;
+	ten_us_count = 0;
 
 	// enable PIT interrupt
 	AT91F_PITEnableInt(AT91C_BASE_PITC);
 
 	// wait for ms
-	while(ms_count < ms);
+	while(ten_us_count < ten_us);
 
 	// disable PIT interrupt
 	AT91F_PITDisableInt(AT91C_BASE_PITC);
@@ -240,60 +243,73 @@ void interrupt_setup()
 }
 
 
+void TC_initialize()
+{
+  // Enable peripheral clock in PMC for Timer Counter 0
+  AT91F_TC0_CfgPMC();
 
+  // Configure Timer Counter 0 with Software Trigger Effect on TIOA
+// MCK/2 = 48,000,000 / 2 = 24,000,000 clocks/sec
+  TC_Configure(AT91C_BASE_TC0, AT91C_TC_CLKS_TIMER_DIV1_CLOCK |
+                               AT91C_TC_ASWTRG); 
+}
                    
 
 int main()
 {
-  	
+  int n =0;
 
-	int i=0;
-	
+  // Port set up
 	Port_Setup();
-	DBG_Init();
-	
-	// PIT setup
-	PIT_initiailize();
-	
-	//interrupt setup
-	interrupt_setup();
-	
+   
+// UART 
+  DBG_Init();
+  Uart_Printf("Ultrasound - Test\n");
 
-	while(1) 
-	{
-		
-		if(ms==100)
-		{
-			ms=0;
-			s++;
-			rPIO_SODR_B=LED3;
-		}
-			
-		if(s==60)
-		{
-			s=0;
-			m++;
-			rPIO_SODR_B=LED2;
-		}
+  // PIT setup
+  PIT_initiailize();
+  // Timer counter
+  TC_initialize();
 
-		if(m==60)
-		{
-			m=0;
-			h++;
-			rPIO_SODR_B=LED1;
-		
-		}
+  while(1) 
+  {
+    Uart_Printf("iter = %d  ", n);
+    //rPIO_SODR_B=(LED1|LED2|LED3);
 
-		if(h==24)
-		{
-			h=0;
-		}
-			
-		Uart_Printf("\r%02d:%02d:%02d:%02d",h,m,s,ms);
-		ms++;
-		HW_delay_ms(5);
-		rPIO_CODR_B=(LED1|LED2|LED3);
-		HW_delay_ms(5);
-	
-	}	
+    // 타이머시작
+    TC_Start(AT91C_BASE_TC0);
+    
+	// 딜레이
+    HW_delay_ten_us(100);
+
+    // 타이머스탑
+    TC_Stop(AT91C_BASE_TC0);
+    
+    //오버플로우 
+     if (AT91C_BASE_TC0->TC_SR& AT91C_TC_COVFS)
+    {
+      Uart_Printf("Overflow - ");
+    }
+    else
+    {
+      Uart_Printf("Normal - ");
+    }
+    
+    // 타이머값
+    // (data sheet)
+    // AT91C_TC_CLKS_TIMER_DIV1_CLOCK = MCK/2 = 48MHz / 2 = 24MHz
+    // TC_CV/24,000 = 1 msec
+    
+    // AT91C_TC_CLKS_TIMER_DIV1_CLOCK = MCK/1000 = 48kHz, TC_CV/48,000 = 1 sec
+    // AT91C_TC_CLKS_TIMER_DIV2_CLOCK = MCK/? = 48kHz, TC_CV/48,000 = 1 sec
+    
+    
+    Uart_Printf("TC_CV = %u clocks\n", AT91C_BASE_TC0->TC_CV);
+    
+    
+    //rPIO_CODR_B=(LED1|LED2|LED3);
+    HW_delay_ten_us(50000);
+    n++;
+  } 
 }
+
