@@ -89,7 +89,7 @@ void Port_Setup(void)
 	AT91F_PMC_EnablePeriphClock ( AT91C_BASE_PMC, 1 << AT91C_ID_PIOA );
 	
 	// Enable PIO in output mode: Port A 0-7
-	AT91F_PIO_CfgOutput( AT91C_BASE_PIOA,  PORTA);
+	//AT91F_PIO_CfgOutput( AT91C_BASE_PIOA,  PORTA);
 
 	// LED (Port B: 28-30)
 	AT91F_PIO_CfgOutput( AT91C_BASE_PIOB, LED1|LED2|LED3 ); // output mode
@@ -98,6 +98,9 @@ void Port_Setup(void)
 	// Switch (Port A: 8,9)
 	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, SW1|SW2 ); // output mode
 	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, SW1|SW2 ); // pull-up
+
+	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, PA0 ); // output mode
+	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, PA1 ); // pull-up
 
 	
 	//AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,1<<AT91C_ID_PIOA);
@@ -273,9 +276,45 @@ int main()
 
   while(1) 
   {
-    Uart_Printf("iter = %d  ", n);
+    //Uart_Printf("iter = %d  ", n);
     //rPIO_SODR_B=(LED1|LED2|LED3);
+    
 
+    	rPIO_CODR_A=(PA0|PA1); 
+    
+    //[falling 방식]
+    //1-트리거핀 on [PA0]
+    	rPIO_SODR_A=(PA0);
+    //2-10us dellay
+	    HW_delay_ten_us(1);
+    //3-트리거핀 off
+    	rPIO_CODR_A=(PA0);
+    //4-에코핀 기다리기(on인지)[PA1] 
+     	while(1)
+     	{
+     		if(PORTA==0x02)
+     		{
+			    //5-에코핀이 on이면 타이머를 키기 
+   				TC_Start(AT91C_BASE_TC0);
+   				break;
+     		}
+     		
+      	}
+      	while(1)
+     	{
+     	 	if(PORTA==0x00)
+     		{
+    			//6-에코핀이 off면 타이머를 끄기 
+			 	TC_Stop(AT91C_BASE_TC0);
+				break;
+	 		}
+     	
+     	}
+       //8-시간을 재서 거리재서 출력하기 
+		Uart_Printf("TC_CV = %u clocks\n",(AT91C_BASE_TC0->TC_CV/48000)/58);
+	
+	
+/*
     // 타이머시작
     TC_Start(AT91C_BASE_TC0);
     
@@ -309,7 +348,7 @@ int main()
     
     //rPIO_CODR_B=(LED1|LED2|LED3);
     HW_delay_ten_us(50000);
-    n++;
+    n++;*/
   } 
 }
 
