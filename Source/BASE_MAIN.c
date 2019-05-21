@@ -99,6 +99,7 @@ void Port_Setup(void)
 	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, SW1|SW2 ); // output mode
 	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, SW1|SW2 ); // pull-up
 
+	//Ultra 
 	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, PA0 ); // output mode
 	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, PA1 ); // pull-up
 
@@ -253,7 +254,7 @@ void TC_initialize()
 
   // Configure Timer Counter 0 with Software Trigger Effect on TIOA
 // MCK/2 = 48,000,000 / 2 = 24,000,000 clocks/sec
-  TC_Configure(AT91C_BASE_TC0, AT91C_TC_CLKS_TIMER_DIV1_CLOCK |
+  TC_Configure(AT91C_BASE_TC0, AT91C_TC_CLKS_TIMER_DIV3_CLOCK |
                                AT91C_TC_ASWTRG); 
 }
                    
@@ -263,9 +264,9 @@ int main()
   int n =0;
 
   // Port set up
-	Port_Setup();
+  Port_Setup();
    
-// UART 
+  // UART 
   DBG_Init();
   Uart_Printf("Ultrasound - Test\n");
 
@@ -280,41 +281,41 @@ int main()
     //rPIO_SODR_B=(LED1|LED2|LED3);
     
 
-    	rPIO_CODR_A=(PA0|PA1); 
+    rPIO_CODR_A=(PA0|PA1); 
     
     //[falling 방식]
     //1-트리거핀 on [PA0]
-    	rPIO_SODR_A=(PA0);
+    rPIO_SODR_A=(PA0);
     //2-10us dellay
-	    HW_delay_ten_us(1);
+	HW_delay_ten_us(1);
     //3-트리거핀 off
-    	rPIO_CODR_A=(PA0);
+    rPIO_CODR_A=(PA0);
     //4-에코핀 기다리기(on인지)[PA1] 
-     	while(1)
+    while(1)
+    {
+     	//5-에코핀이 on이면 타이머를 키기 
+     	if(AT91F_PIO_IsInputSet(AT91C_BASE_PIOA,PA1))
      	{
-     		if(PORTA==0x02)
-     		{
-			    //5-에코핀이 on이면 타이머를 키기 
-   				TC_Start(AT91C_BASE_TC0);
-   				break;
-     		}
-     		
-      	}
-      	while(1)
-     	{
-     	 	if(PORTA==0x00)
-     		{
-    			//6-에코핀이 off면 타이머를 끄기 
-			 	TC_Stop(AT91C_BASE_TC0);
-				break;
-	 		}
-     	
+     		break;
+     	} 		
+    }
+    
+    TC_Start(AT91C_BASE_TC0);
+    
+    while(1)
+    {
+      	//6-에코핀이 off면 타이머를 끄기 
+		if(!AT91F_PIO_IsInputSet(AT91C_BASE_PIOA,PA1))
+		{
+			break;     	
      	}
-       //8-시간을 재서 거리재서 출력하기 
-		Uart_Printf("TC_CV = %u clocks\n",(AT91C_BASE_TC0->TC_CV/48000)/58);
-	
-	
-/*
+     }
+     
+     TC_Stop(AT91C_BASE_TC0);
+    //8-시간을 재서 거리재서 출력하기 
+	Uart_Printf("TC_CV = %lf clocks\n",(double)(AT91C_BASE_TC0->TC_CV)/(58*1.5));
+
+	/*
     // 타이머시작
     TC_Start(AT91C_BASE_TC0);
     
@@ -348,7 +349,8 @@ int main()
     
     //rPIO_CODR_B=(LED1|LED2|LED3);
     HW_delay_ten_us(50000);
-    n++;*/
+    n++;
+    */
   } 
 }
 
