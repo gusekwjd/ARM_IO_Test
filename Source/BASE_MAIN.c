@@ -25,7 +25,7 @@ int s=0;
 int m=0;
 int h=0;
 int ms=0;
-
+int mode=0;
 //============================================================================
 //  Function  : PIT Interrupt
 //============================================================================
@@ -100,8 +100,8 @@ void Port_Setup(void)
 	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, SW1|SW2 ); // pull-up
 
 	//Ultra 
-	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, PA0 ); // output mode
-	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, PA1 ); // pull-up
+	AT91F_PIO_CfgOutput( AT91C_BASE_PIOA, PA0 );
+	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, PA1 ); 
 
 	
 	//AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,1<<AT91C_ID_PIOA);
@@ -220,27 +220,41 @@ void HW_delay_ten_us(unsigned int ten_us)
 }
 
 //PIO interrupt service routine
-void PIO_ISR()
-{
+void ISR()
+{	
 	//Reset the stop watch
-	s=0;
-	m=0;
-	h=0;
-	ms=0;
+	if(mode==0)	
+	{
+		TC_Start(AT91C_BASE_TC0);
+		rAIC_SMR3=(AT91C_AIC_SRCTYPE_EXT_NEGATIVE_EDGE|7);
+		mode=1;
+	}
+	else
+	{
+		TC_Stop(AT91C_BASE_TC0);
+		Uart_Printf("TC_CV = %lf clocks\n",(double)(AT91C_BASE_TC0->TC_CV)/(58*1.5));
+		rAIC_SMR3=(AT91C_AIC_SRCTYPE_POSITIVE_EDGE|7);
+		mode=0;	
+	}
+	HW_delay_ten_us(600);
+		rPIO_SODR_A=(PA0);
+    	//2-10us dellay
+		HW_delay_ten_us(1);
+   	 	//3-트리거핀 off
+   	 	rPIO_CODR_A=(PA0);
 	
 }
-
 void interrupt_setup()
 {
 	//SW1을 input
-	AT91F_PIO_InputFilterEnable(AT91C_BASE_PIOA,SW1);
+	AT91F_PIO_InputFilterEnable(AT91C_BASE_PIOA,PA1);
 	
 	//Set interrupt SW1
-	AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,SW1);
+	AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,PA1);
 	
 	//Set callback function
 	//PIOA 에 인터럽트가 걸리면 
-	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC,AT91C_ID_PIOA,7,1,PIO_ISR);
+	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC,AT91C_ID_PIOA,7,AT91C_AIC_SRCTYPE_POSITIVE_EDGE,ISR);
 	
 	//Enable AIC
 	//AT91F_AIC_EnableIt(AT91C_BASE_AIC,AT91C_ID_PIOA);
@@ -261,96 +275,32 @@ void TC_initialize()
 
 int main()
 {
-  int n =0;
-
-  // Port set up
-  Port_Setup();
+int n=0;
+ //Port set up
+ Port_Setup();
    
-  // UART 
-  DBG_Init();
-  Uart_Printf("Ultrasound - Test\n");
+ //UART setup
+ DBG_Init();
+ Uart_Printf("Ultrasound - Test\n");
 
-  // PIT setup
-  PIT_initiailize();
-  // Timer counter
-  TC_initialize();
+ //PIT setup
+ PIT_initiailize();
+ //Timer counter
+ TC_initialize();
+  
+ //interruptsetup
+ interrupt_setup();
+  
+ rPIO_SODR_A=(PA0);
+ HW_delay_ten_us(1);
+ rPIO_CODR_A=(PA0);
 
   while(1) 
   {
-    //Uart_Printf("iter = %d  ", n);
-    //rPIO_SODR_B=(LED1|LED2|LED3);
-    
-
-    rPIO_CODR_A=(PA0|PA1); 
-    
-    //[falling 방식]
-    //1-트리거핀 on [PA0]
-    rPIO_SODR_A=(PA0);
-    //2-10us dellay
-	HW_delay_ten_us(1);
-    //3-트리거핀 off
-    rPIO_CODR_A=(PA0);
-    //4-에코핀 기다리기(on인지)[PA1] 
-    while(1)
-    {
-     	//5-에코핀이 on이면 타이머를 키기 
-     	if(AT91F_PIO_IsInputSet(AT91C_BASE_PIOA,PA1))
-     	{
-     		break;
-     	} 		
-    }
-    
-    TC_Start(AT91C_BASE_TC0);
-    
-    while(1)
-    {
-      	//6-에코핀이 off면 타이머를 끄기 
-		if(!AT91F_PIO_IsInputSet(AT91C_BASE_PIOA,PA1))
-		{
-			break;     	
-     	}
-     }
-     
-     TC_Stop(AT91C_BASE_TC0);
-    //8-시간을 재서 거리재서 출력하기 
-	Uart_Printf("TC_CV = %lf clocks\n",(double)(AT91C_BASE_TC0->TC_CV)/(58*1.5));
-
-	/*
-    // 타이머시작
-    TC_Start(AT91C_BASE_TC0);
-    
-	// 딜레이
-    HW_delay_ten_us(100);
-
-    // 타이머스탑
-    TC_Stop(AT91C_BASE_TC0);
-    
-    //오버플로우 
-     if (AT91C_BASE_TC0->TC_SR& AT91C_TC_COVFS)
-    {
-      Uart_Printf("Overflow - ");
-    }
-    else
-    {
-      Uart_Printf("Normal - ");
-    }
-    
-    // 타이머값
-    // (data sheet)
-    // AT91C_TC_CLKS_TIMER_DIV1_CLOCK = MCK/2 = 48MHz / 2 = 24MHz
-    // TC_CV/24,000 = 1 msec
-    
-    // AT91C_TC_CLKS_TIMER_DIV1_CLOCK = MCK/1000 = 48kHz, TC_CV/48,000 = 1 sec
-    // AT91C_TC_CLKS_TIMER_DIV2_CLOCK = MCK/? = 48kHz, TC_CV/48,000 = 1 sec
-    
-    
-    Uart_Printf("TC_CV = %u clocks\n", AT91C_BASE_TC0->TC_CV);
-    
-    
-    //rPIO_CODR_B=(LED1|LED2|LED3);
-    HW_delay_ten_us(50000);
-    n++;
-    */
+   	 Uart_Printf("%d\n",n);
+     HW_delay_ten_us(10);
+     n++;
+	
   } 
 }
 
