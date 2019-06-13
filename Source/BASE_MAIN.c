@@ -15,17 +15,34 @@
 #define LEFT	1
 #define RIGHT	2
 
+#define ROW1 PA8
+#define ROW2 PA9
+#define ROW3 PA13
+#define ROW4 PA2
+#define ROW5 PA14
+#define ROW6 PA4
+#define ROW7 PA5
+#define ROW8 PA11
+
+#define COL1 PA15
+#define COL2 PA10
+#define COL3 PA0
+#define COL4 PA12
+#define COL5 PA7
+#define COL6 PA1
+#define COL7 PA6
+#define COL8 PA3
+
+
 unsigned int 	Key_Count=0,Pre_Key_Data=0;
 unsigned char Switch_Check(void);
 unsigned char Port_Flag=0;
 unsigned int	Count=0; 
 
-//Stop watch global var
-int s=0;
-int m=0;
-int h=0;
-int ms=0;
+
 int mode=0;
+int trigger_request=0;
+int ten_us_count=0; 
 //============================================================================
 //  Function  : PIT Interrupt
 //============================================================================
@@ -84,223 +101,93 @@ void 	PIT_Interrupt_Setup(void)
 
 void Port_Setup(void)
 {
-	// PMC (Power Management Clock) enables peripheral clocks
-	AT91F_PMC_EnablePeriphClock ( AT91C_BASE_PMC, 1 << AT91C_ID_PIOB );
 	AT91F_PMC_EnablePeriphClock ( AT91C_BASE_PMC, 1 << AT91C_ID_PIOA );
 	
-	// Enable PIO in output mode: Port A 0-7
-	//AT91F_PIO_CfgOutput( AT91C_BASE_PIOA,  PORTA);
-
-	// LED (Port B: 28-30)
-	AT91F_PIO_CfgOutput( AT91C_BASE_PIOB, LED1|LED2|LED3 ); // output mode
-	AT91F_PIO_CfgPullup( AT91C_BASE_PIOB, LED1|LED2|LED3 ); // pull-up
-
+	
+	//DoteMetrix
+	
+	
 	// Switch (Port A: 8,9)
-	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, SW1|SW2 ); // output mode
-	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA, SW1|SW2 ); // pull-up
-
-	//Ultra 
-	AT91F_PIO_CfgOutput( AT91C_BASE_PIOA, PA0 );
-	AT91F_PIO_CfgInput( AT91C_BASE_PIOA, PA1 ); 
-
+	AT91F_PIO_CfgOutput( AT91C_BASE_PIOA, PORTA); // output mode
+	AT91F_PIO_CfgPullup( AT91C_BASE_PIOA,PORTA  ); // pull-up
 	
-	//AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,1<<AT91C_ID_PIOA);
-
-	//AT91F_PIO_SetOutput(AT91C_BASE_PIOA, (1<<13));
-	//AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, (1<<13));
-	
-}
-/*
-void Read_For_Setup_CMOS(void)
-{
-
-	//Read address Reset
-	rPIO_CODR_A=FIFO_RD_RST;			
-	rPIO_SODR_A=FIFO_RD;
-	rPIO_CODR_A=FIFO_RD;
-	rPIO_SODR_A=FIFO_RD;
-	rPIO_CODR_A=FIFO_RD;
-	rPIO_SODR_A=FIFO_RD_RST;
-
-	//Write On		
-	//rPIO_SODR_A=XCLK_ON;
-	rPIO_SODR_A=HREF_SYNC;
-			
-	//Until Wait Low
-	while((rPIO_PDSR_A & 0x00000004)){}
-	//Until Wait High
-	while(!(rPIO_PDSR_A & 0x00000004)){}
-			
-	//Write Off		
-	//rPIO_CODR_A=HREF_SYNC;
-			
-	//CS_LOW
-	rPIO_CODR_A=FIFO_CS;
-
-}
-
-void CMOS_Read_Clk(void)
-{
-	rPIO_SODR_A=FIFO_RD;
-	rPIO_CODR_A=FIFO_RD;
-}
-*/
-
-unsigned char Switch_Check(void)
-{
-unsigned char Result=0;
-
-	if(!(rPIO_PDSR_A & SW1)) Result=LEFT;
-	else if(!(rPIO_PDSR_A & SW2)) Result=RIGHT;
-	
-	
-	if(Pre_Key_Data==Result) Key_Count++;
-	else Key_Count=0;
-	
-	Pre_Key_Data=Result;
-	return	Result;
-}
-//-----------------------------------------------------------------------------
-/// Main Procedure
-//-----------------------------------------------------------------------------
-// PIT interrupt service routine
-volatile unsigned int ten_us_count = 0;
-void PIT_ISR()
-{
-	// Clear PITS
-	AT91F_PITGetPIVR(AT91C_BASE_PITC);
-
-	// increase ms_count
-	ten_us_count++;
-}
-
-// Initialize PIT and interrupt
-void PIT_initiailize()
-{
-	// enable peripheral clock for PIT
-	AT91F_PITC_CfgPMC();
-
-	// set the period to be every 1 msec in 48MHz
-	AT91F_PITInit(AT91C_BASE_PITC, 1, 48);
-
-	// PIV (Periodic Interval Value) = 3000 clocks = 1 msec
-	// MCK/16 = 48,000,000 / 16 = 3,000,000 clocks/sec
-	//30 clocks / 10 usec
-	AT91F_PITSetPIV(AT91C_BASE_PITC, 30-1);
-
-	// disable PIT periodic interrupt for now
-	AT91F_PITDisableInt(AT91C_BASE_PITC);
-
-	// interrupt handler initializatioin
-	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC, AT91C_ID_SYS, 7, 1, PIT_ISR);
-
-	// enable the PIT interrupt
-	AT91F_AIC_EnableIt(AT91C_BASE_AIC, AT91C_ID_SYS);
-}
-
-// delay in ms by PIT interrupt
-
-
+}       
 void HW_delay_ten_us(unsigned int ten_us)
 {
 	// special case
 	if(ten_us == 0) return;
-
 	// start time
 	ten_us_count = 0;
-
 	// enable PIT interrupt
 	AT91F_PITEnableInt(AT91C_BASE_PITC);
-
 	// wait for ms
 	while(ten_us_count < ten_us);
-
 	// disable PIT interrupt
 	AT91F_PITDisableInt(AT91C_BASE_PITC);
-}
-
-//PIO interrupt service routine
-void ISR()
-{	
-	//Reset the stop watch
-	if(mode==0)	
-	{
-		TC_Start(AT91C_BASE_TC0);
-		rAIC_SMR3=(AT91C_AIC_SRCTYPE_EXT_NEGATIVE_EDGE|7);
-		mode=1;
-	}
-	else
-	{
-		TC_Stop(AT91C_BASE_TC0);
-		Uart_Printf("TC_CV = %lf clocks\n",(double)(AT91C_BASE_TC0->TC_CV)/(58*1.5));
-		rAIC_SMR3=(AT91C_AIC_SRCTYPE_POSITIVE_EDGE|7);
-		mode=0;	
-	}
-	HW_delay_ten_us(600);
-		rPIO_SODR_A=(PA0);
-    	//2-10us dellay
-		HW_delay_ten_us(1);
-   	 	//3-트리거핀 off
-   	 	rPIO_CODR_A=(PA0);
-	
-}
-void interrupt_setup()
-{
-	//SW1을 input
-	AT91F_PIO_InputFilterEnable(AT91C_BASE_PIOA,PA1);
-	
-	//Set interrupt SW1
-	AT91F_PIO_InterruptEnable(AT91C_BASE_PIOA,PA1);
-	
-	//Set callback function
-	//PIOA 에 인터럽트가 걸리면 
-	AT91F_AIC_ConfigureIt(AT91C_BASE_AIC,AT91C_ID_PIOA,7,AT91C_AIC_SRCTYPE_POSITIVE_EDGE,ISR);
-	
-	//Enable AIC
-	//AT91F_AIC_EnableIt(AT91C_BASE_AIC,AT91C_ID_PIOA);
-}
-
-
-void TC_initialize()
-{
-  // Enable peripheral clock in PMC for Timer Counter 0
-  AT91F_TC0_CfgPMC();
-
-  // Configure Timer Counter 0 with Software Trigger Effect on TIOA
-// MCK/2 = 48,000,000 / 2 = 24,000,000 clocks/sec
-  TC_Configure(AT91C_BASE_TC0, AT91C_TC_CLKS_TIMER_DIV3_CLOCK |
-                               AT91C_TC_ASWTRG); 
-}
-                   
+}          
 
 int main()
 {
-int n=0;
- //Port set up
- Port_Setup();
-   
- //UART setup
- DBG_Init();
- Uart_Printf("Ultrasound - Test\n");
+ 	//Port set up
+ 	Port_Setup();
+   	rPIO_CODR_A=PORTA; 
 
- //PIT setup
- PIT_initiailize();
- //Timer counter
- TC_initialize();
-  
- //interruptsetup
- interrupt_setup();
-  
- rPIO_SODR_A=(PA0);
- HW_delay_ten_us(1);
- rPIO_CODR_A=(PA0);
-
-  while(1) 
-  {
-   	 Uart_Printf("%d\n",n);
-     HW_delay_ten_us(10);
-     n++;
-	
-  } 
+	  while(1) 
+	  {
+	     rPIO_CODR_A=PORTA;   
+	  	
+	  	  rPIO_SODR_A=ROW1;
+	 	 rPIO_SODR_A=COL1|COL4|COL5|COL8;		
+	   			
+		 Delay(10);
+		 
+		 
+		 rPIO_CODR_A=PORTA;	  
+	  	
+	 	 rPIO_SODR_A=COL2|COL3|COL6|COL7;		
+	     
+	     rPIO_SODR_A=ROW2; 	     	
+		
+		 Delay(10);
+		 
+		  rPIO_CODR_A=PORTA;	  
+	  	
+	 	 rPIO_SODR_A=COL2|COL3|COL4|COL5|COL6|COL7;		
+	     
+	     rPIO_SODR_A=ROW3|ROW4|ROW5; 	     	
+		
+		 Delay(10);
+		 
+		 
+		  rPIO_CODR_A=PORTA;	  
+	  	
+	 	 rPIO_SODR_A=COL1|COL3|COL4|COL5|COL6|COL8;		
+	     
+	     rPIO_SODR_A=ROW6; 	     	
+		
+		 Delay(10);
+		 
+		 
+		 rPIO_CODR_A=PORTA;	  
+	  	
+	 	 rPIO_SODR_A=COL1|COL2|COL4|COL5|COL7|COL8;		
+	     
+	     rPIO_SODR_A=ROW7; 	     	
+		
+		Delay(10);
+		 
+		 
+		  rPIO_CODR_A=PORTA;	  
+	  	
+	 	 rPIO_SODR_A=COL1|COL2|COL3|COL6|COL7|COL8;		
+	     
+	     rPIO_SODR_A=ROW8; 	     	
+		
+		Delay(10);
+	 
+	 
+		 
+	  } 
+	  
 }
 

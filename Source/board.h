@@ -129,12 +129,20 @@
 #define PA5					(1<<5)
 #define PA6					(1<<6)
 #define PA7					(1<<7)
+#define PA8					(1<<8)
+#define PA9					(1<<9)
+#define PA10					(1<<10)
+#define PA11					(1<<11)
+#define PA12					(1<<12)
+#define PA13					(1<<13)
+#define PA14					(1<<14)
+#define PA15					(1<<15)
 
 #define SW1					(1<<8)
 #define SW2					(1<<9)
 
 
-#define PORTA				(PA0|PA1|PA2|PA3|PA4|PA5|PA6|PA7)
+#define PORTA				(PA0|PA1|PA2|PA3|PA4|PA5|PA6|PA7|PA8|PA9|PA10|PA11|PA12|PA13|PA14|PA15)
 #define SWITCH				(SW1|SW2)
 
 
